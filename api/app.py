@@ -1,6 +1,7 @@
 import csv
 from os import listdir
 from os.path import isfile, join
+import numpy as np
 
 from flask import Flask, request, make_response, jsonify, send_file
 
@@ -29,13 +30,22 @@ def getCsvFixe(courseId):
     path = 'data/' + str(courseId) + '/fixe'
     onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
     res = []
+    timeMin = None
     for file in onlyfiles:
         with open(path + '/' + file, newline='') as csvfile:
             spamreader = csv.reader(csvfile, delimiter=';', quotechar='|')
+            row1 = next(spamreader)
+            row1.append(file)
+            res.append(row1)
+            if timeMin is None or row1[0] > timeMin:
+                timeMin = row1[0]
+
             for row in spamreader:
                 row.append(file)
                 res.append(row)
-    return res
+
+    result = [a for a in res if a[0] >= timeMin]
+    return result
 
 def getCsvBMX(courseId):
     if courseId is None:
@@ -46,13 +56,34 @@ def getCsvBMX(courseId):
     path = 'data/' + str(courseId) + '/bmx'
     onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
     res = []
+    timeMin = None
     for file in onlyfiles:
         with open(path + '/' + file, newline='') as csvfile:
             spamreader = csv.reader(csvfile, delimiter=';', quotechar='|')
+
+            row1 = next(spamreader)
+            row1.append(file)
+            res.append(row1)
+            if timeMin is None or row1[0] > timeMin:
+                timeMin = row1[0]
+
             for row in spamreader:
                 row.append(file)
                 res.append(row)
-    return res
+
+    result = [a for a in res if a[0] >= timeMin]
+    return result
+
+def corrige(M, ptFixes):
+    Mcorr = [M[0]]
+    dXY = np.array([])
+    for i in range(1, len(M)):
+        for j in range(len(ptFixes)):
+            dXY = np.append(dXY, ptFixes[j][i]- ptFixes[j][0])
+        Mcorr = np.append(Mcorr, [M[i]-(np.mean(dXY))], axis=0)
+
+    return Mcorr
+
 
 def getCalcul(courseId):
     if courseId is None:
@@ -62,7 +93,7 @@ def getCalcul(courseId):
 
     path = 'data/' + str(courseId) + '/calcul.csv'
 
-    if not isfile(path):
+    if True or not isfile(path):
         print('File not exist. Compute it')
         fixe = getCsvFixe(courseId)
         bmx = getCsvBMX(courseId)
@@ -99,7 +130,6 @@ def getJson(id):
     tmp = None
     for item in res:
         if tmp is not None and tmp['name'] != item[3]:
-            print("change File")
             resp.append(tmp)
             tmp = None
         if tmp is None:
@@ -108,7 +138,9 @@ def getJson(id):
         tmp['latlngs'].append([item[1], item[2]])
     if tmp is not None:
         resp.append(tmp)
-    return make_response(jsonify(resp))
+    response = jsonify(resp)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 def getCSV(courseId):
     if courseId is None:

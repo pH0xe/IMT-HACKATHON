@@ -13,7 +13,7 @@
       <l-polyline
         v-for="(polyline, index) in polylines"
         :lat-lngs="getLat(index)"
-        :color="polyline.color"
+        :color="getColor(index)"
         :key="index"
       ></l-polyline>
     </l-map>
@@ -25,7 +25,7 @@
         v-model="time"
         :min="0"
         :max="getNbMilli"
-        :step="1000"
+        :step="100"
         vertical
         reverse
       ></q-slider>
@@ -61,7 +61,7 @@ export default {
 
   computed: {
     getMin() {
-      return this.polylines[0]?.times[0]
+      return parseInt(this.polylines[0]?.times[0])
     },
 
     getMax() {
@@ -75,7 +75,7 @@ export default {
           }
         }
       });
-      return max;
+      return parseInt(max);
     },
 
     getNbSecond() {
@@ -91,11 +91,12 @@ export default {
     getLat(index) {
       const poly = this.polylines[index];
       const search = this.time + this.getMin;
-      const i = poly.times.filter(t => t <= search);
-      return poly.latlngs.slice(0, i.length);
+      const i = poly.times.findIndex(t => t > search);
+      return poly.latlngs.slice(0, i);
     },
 
     getVitesse() {
+      return 0
       if (this.polylines.length > 0) {
         const poly = this.polylines[1];
         const search = this.time + this.getMin;
@@ -104,14 +105,18 @@ export default {
         return poly.vitesse[i];
       }
       return 0;
+    },
+    getColor(index) {
+      const colors = ['red', 'blue', 'green', 'yellow', 'purple']
+      return colors[index % 5]
     }
   },
 
   mounted() {
-    this.$store.dispatch('gps/fetchPure').then(res => {
-      this.polylines = res;
-      this.time = this.getNbMilli;
-    })
+    this.$store.dispatch('gps/fetchData', { id: 0 }).then(res => {
+      this.polylines = res.data;
+      console.log(res.data)
+    }).catch(err => console.log(err))
   }
 };
 </script>
