@@ -2,7 +2,7 @@
   <q-page class="row items-center">
 
     <l-map
-      class="col-11 q-mx-md"
+      class="col-10 q-ml-md"
       style="height:90vh; flex-grow: 2; width: auto"
       :options="{attributionControl: false}"
       :center="center"
@@ -18,19 +18,51 @@
       ></l-polyline>
     </l-map>
 
-    <div class="flex flex-center column q-mx-md col-1">
-      <span>Temps:</span>
-      <span>{{ time/1000 }} secondes</span>
-      <q-slider
-        v-model="time"
-        :min="0"
-        :max="getNbMilli"
-        :step="100"
-        vertical
-        reverse
-      ></q-slider>
-      <span>Vitesse:</span>
-      <span>{{ getVitesse() }} </span>
+    <div class="flex flex-center column q-mx-md col-2 side">
+
+      <div class="flex flex center column full-width">
+        <q-select v-model="course" :options="courseOptions" label="Course" class="q-my-md"/>
+        <q-btn outline color="secondary" icon="download" label="Télécharger" />
+      </div>
+
+      <div class="flex flex-center column">
+        <span>Temps:</span>
+        <span>{{ (time/1000).toFixed(2) }} secondes</span>
+        <q-slider
+          v-model="time"
+          :min="0"
+          :max="getNbMilli"
+          :step="100"
+          vertical
+          reverse
+        ></q-slider>
+      </div>
+      <div class="full-width">
+        <q-list bordered>
+          <q-item
+            v-for="(stat, index) in getVitesse()"
+            :key="index"
+          >
+            <q-item-section avatar>
+              <q-avatar :color="stat[2]" text-color="white" >
+                {{ stat[1][0] }}
+              </q-avatar>
+            </q-item-section>
+
+            <q-item-section>{{ stat[1] }}</q-item-section>
+            
+
+            <q-item-section>
+              <q-item-label>Vitesse</q-item-label>
+              <q-item-label caption lines="2">{{ stat[0].toFixed(2) }}km/h</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+
+
+
+      </div>
+      
     </div>
 
 
@@ -57,6 +89,8 @@ export default {
     center: [47.282167, -1.520539],
     zoom: 20,
     time: 0,
+    course: null,
+    courseOptions: []
   }),
 
   computed: {
@@ -96,15 +130,19 @@ export default {
     },
 
     getVitesse() {
-      return 0
+      const res = []
       if (this.polylines.length > 0) {
-        const poly = this.polylines[1];
-        const search = this.time + this.getMin;
-        const i = poly.times.findIndex(t => t === search);
-        console.log(poly.vitesse);
-        return poly.vitesse[i];
+        this.polylines.forEach((poly, index) => {
+          if (poly.times && poly.vitesse) {
+            const search = this.time + this.getMin;
+            const i = poly.times.findIndex(t => t >= search);
+            let vit = poly.vitesse[i];
+            if (!vit) vit = 0;
+            res.push([vit, poly.name, this.getColor(index)])
+          }
+        })        
       }
-      return 0;
+      return res;
     },
     getColor(index) {
       const colors = ['red', 'blue', 'green', 'yellow', 'purple']
@@ -113,10 +151,20 @@ export default {
   },
 
   mounted() {
-    this.$store.dispatch('gps/fetchData', { id: 0 }).then(res => {
+    this.$store.dispatch('gps/fetchData', { id: 1 }).then(res => {
       this.polylines = res.data;
-      console.log(res.data)
+      this.polylines.forEach(polyline => {
+        this.time = this.getNbMilli
+        this.$store.dispatch('gps/calculVitesse', { latlngs: polyline.latlngs, times: polyline.times })
+          .then(speeds => {
+            polyline.vitesse = speeds;
+          });
+      })
     }).catch(err => console.log(err))
+
+    this.$store.dispatch('gps/fetchCount').then(res => {
+        this.courseOptions = res.data;
+    });
   }
 };
 </script>
@@ -124,5 +172,12 @@ export default {
 <style scoped>
 .q-slider {
   margin: 10px
+}
+.font-bold {
+  font-weight: bold;
+}
+.side {
+  height: 80vh;
+  justify-content: space-around;
 }
 </style>

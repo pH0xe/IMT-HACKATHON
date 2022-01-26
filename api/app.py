@@ -35,17 +35,19 @@ def getCsvFixe(courseId):
         with open(path + '/' + file, newline='') as csvfile:
             spamreader = csv.reader(csvfile, delimiter=';', quotechar='|')
             row1 = next(spamreader)
-            row1.append(file)
+            name = file.split(".")[0].split("-")[1]
+            row1.append(name)
             res.append(row1)
             if timeMin is None or row1[0] > timeMin:
                 timeMin = row1[0]
 
             for row in spamreader:
-                row.append(file)
+                name = file.split(".")[0].split("-")[1]
+                row.append(name)
                 res.append(row)
 
     result = [a for a in res if a[0] >= timeMin]
-    return result
+    return removeDuplicate(result)
 
 def getCsvBMX(courseId):
     if courseId is None:
@@ -62,27 +64,29 @@ def getCsvBMX(courseId):
             spamreader = csv.reader(csvfile, delimiter=';', quotechar='|')
 
             row1 = next(spamreader)
-            row1.append(file)
+            name = file.split(".")[0].split("-")[1]
+            row1.append(name)
             res.append(row1)
             if timeMin is None or row1[0] > timeMin:
                 timeMin = row1[0]
 
             for row in spamreader:
-                row.append(file)
+                name = file.split(".")[0].split("-")[1]
+                row.append(name)
                 res.append(row)
 
     result = [a for a in res if a[0] >= timeMin]
-    return result
+    return removeDuplicate(result)
 
-def corrige(M, ptFixes):
-    Mcorr = [M[0]]
-    dXY = np.array([])
-    for i in range(1, len(M)):
-        for j in range(len(ptFixes)):
-            dXY = np.append(dXY, ptFixes[j][i]- ptFixes[j][0])
-        Mcorr = np.append(Mcorr, [M[i]-(np.mean(dXY))], axis=0)
-
-    return Mcorr
+def removeDuplicate(li):
+    seen = []
+    res = []
+    for item in li:
+        current = str(item[1]) + ', ' + str(item[2])
+        if current not in seen:
+            seen.append(current)
+            res.append(item)
+    return res
 
 
 def getCalcul(courseId):
@@ -93,7 +97,7 @@ def getCalcul(courseId):
 
     path = 'data/' + str(courseId) + '/calcul.csv'
 
-    if True or not isfile(path):
+    if not isfile(path):
         print('File not exist. Compute it')
         fixe = getCsvFixe(courseId)
         bmx = getCsvBMX(courseId)
@@ -123,6 +127,14 @@ def getData():
         return getJson(courseId)
     else:
         return getCSV(courseId)
+
+@app.route('/count', methods=['GET'])
+def getCount():
+    path = 'data'
+    l = [f for f in listdir(path)]
+    response = jsonify(l)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 def getJson(id):
     res = getCalcul(id)
