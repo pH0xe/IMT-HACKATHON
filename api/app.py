@@ -1,3 +1,4 @@
+from cmath import log
 import csv
 from os import listdir
 from os.path import isfile, join
@@ -38,15 +39,14 @@ def getCsvFixe(courseId):
             name = file.split(".")[0].split("-")[1]
             row1.append(name)
             res.append(row1)
-            if timeMin is None or row1[0] > timeMin:
+            if timeMin is None or int(row1[0]) > int(timeMin):
                 timeMin = row1[0]
 
             for row in spamreader:
-                name = file.split(".")[0].split("-")[1]
                 row.append(name)
                 res.append(row)
-
-    result = [a for a in res if a[0] >= timeMin]
+    result = [a for a in res if int(a[0]) >= int(timeMin)]
+    # [a for a in res if a[0] >= timeMin]
     return removeDuplicate(result)
 
 def getCsvBMX(courseId):
@@ -71,7 +71,6 @@ def getCsvBMX(courseId):
                 timeMin = row1[0]
 
             for row in spamreader:
-                name = file.split(".")[0].split("-")[1]
                 row.append(name)
                 res.append(row)
 
@@ -97,14 +96,16 @@ def getCalcul(courseId):
 
     path = 'data/' + str(courseId) + '/calcul.csv'
 
-    if not isfile(path):
+    if True or not isfile(path):
         print('File not exist. Compute it')
         fixe = getCsvFixe(courseId)
-        bmx = getCsvBMX(courseId)
+        # bmx = getCsvBMX(courseId)
         pathCalcul = 'data/' + str(courseId) + '/calcul.csv'
         with open(pathCalcul, 'w', newline='') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=';', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for row in fixe:
+                if int(row[0]) < 5000:
+                    row[0] = int(row[0])*1000 + 1643204079878
                 spamwriter.writerow(row)
 
     res = []
@@ -160,7 +161,9 @@ def getCSV(courseId):
         if courseId is None:
             return []
     getCalcul(courseId)
-    return send_file('data/' + str(courseId) + '/calcul.csv')
+    response = send_file('data/' + str(courseId) + '/calcul.csv')
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 
 if __name__ == '__main__':

@@ -21,8 +21,8 @@
     <div class="flex flex-center column q-mx-md col-2 side">
 
       <div class="flex flex center column full-width">
-        <q-select v-model="course" :options="courseOptions" label="Course" class="q-my-md"/>
-        <q-btn outline color="secondary" icon="download" label="Télécharger" />
+        <q-select v-model="course" :options="courseOptions" label="Course" class="q-my-md" @update:model-value="onUpdate"/>
+        <q-btn outline color="secondary" icon="download" label="Télécharger" @click="onDownload" :disable="!course"/>
       </div>
 
       <div class="flex flex-center column">
@@ -31,10 +31,11 @@
         <q-slider
           v-model="time"
           :min="0"
-          :max="getNbMilli"
-          :step="100"
+          :max="getNbMilli || 100"
+          :step="10"
           vertical
           reverse
+          :disable="!course"
         ></q-slider>
       </div>
       <div class="full-width">
@@ -147,11 +148,10 @@ export default {
     getColor(index) {
       const colors = ['red', 'blue', 'green', 'yellow', 'purple']
       return colors[index % 5]
-    }
-  },
+    },
 
-  mounted() {
-    this.$store.dispatch('gps/fetchData', { id: 1 }).then(res => {
+    onUpdate(value) {
+      this.$store.dispatch('gps/fetchData', { id: parseInt(value) }).then(res => {
       this.polylines = res.data;
       this.polylines.forEach(polyline => {
         this.time = this.getNbMilli
@@ -159,9 +159,18 @@ export default {
           .then(speeds => {
             polyline.vitesse = speeds;
           });
-      })
-    }).catch(err => console.log(err))
+        });
+      }).catch(err => console.log(err))
+    },
 
+    onDownload() {
+      this.$store.dispatch('gps/fetchFile', { id: parseInt(this.course) }).then(res => {
+        console.log(res);
+      })
+    }
+  },
+
+  mounted() {
     this.$store.dispatch('gps/fetchCount').then(res => {
         this.courseOptions = res.data;
     });

@@ -1,4 +1,5 @@
 import { api } from "src/boot/axios";
+import { exportFile, Notify } from 'quasar'
 
 const interval = 100;
 
@@ -6,6 +7,24 @@ export function fetchData(_, { id }) {
   let path = "/data?type=json";
   if (id != null) path += "&id=" + id;
   return api.get(path);
+}
+
+export function fetchFile(_, { id }) {
+  let path = "/data?type=csv";
+  if (id != null) path += "&id=" + id;
+  api.get(path).then(res => {
+    /*
+    exportFile('course' + id + '.csv', res.data, {
+      mimeType: 'text/csv'
+    });
+    */
+    Notify.create({
+      message: 'Fichier sauvegardé avec succès',
+      color: 'positive',
+      position:'top-right',
+      icon: 'done'
+    })
+  });
 }
 
 export function fetchCount() {
